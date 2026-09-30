@@ -90,6 +90,23 @@ public sealed class MaintenanceRequest
         _history.Add(RequestHistoryEntry.StatusChanged(previous, target, actorId, now));
     }
 
+    public void Assign(Guid assigneeId, Guid actorId, DateTimeOffset now)
+    {
+        if (StatusTransitions.IsTerminal(Status))
+        {
+            throw new RequestClosedException(Status);
+        }
+
+        if (AssigneeId == assigneeId)
+        {
+            throw new SameAssigneeException(assigneeId);
+        }
+
+        var previous = AssigneeId;
+        AssigneeId = assigneeId;
+        _history.Add(RequestHistoryEntry.AssigneeChanged(previous, assigneeId, actorId, now));
+    }
+
     /// <summary>
     /// Trims the value and checks its length in runes (Unicode scalar values),
     /// so an emoji counts as one character instead of two UTF-16 code units.

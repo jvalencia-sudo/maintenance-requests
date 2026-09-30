@@ -45,4 +45,15 @@ public sealed class RequestHistoryEntry
         ActorId = actorId,
         OccurredAt = now
     };
+
+    internal static RequestHistoryEntry AssigneeChanged(
+        Guid? previousAssigneeId, Guid newAssigneeId, Guid actorId, DateTimeOffset now) => new()
+    {
+        Id = Guid.NewGuid(),
+        EventType = HistoryEventType.AssigneeChanged,
+        PreviousAssigneeId = previousAssigneeId,
+        NewAssigneeId = newAssigneeId,
+        ActorId = actorId,
+        OccurredAt = now
+    };
 }
