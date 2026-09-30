@@ -39,6 +39,10 @@ public sealed class MaintenanceRequest
 
     public IReadOnlyCollection<RequestHistoryEntry> History => _history.AsReadOnly();
 
+    public IReadOnlyList<RequestStatus> AllowedTransitions => StatusTransitions.From(Status);
+
+    public bool CanBeAssigned => !StatusTransitions.IsTerminal(Status);
+
     public static MaintenanceRequest Create(
         string title,
         string description,
@@ -92,7 +96,7 @@ public sealed class MaintenanceRequest
 
     public void Assign(Guid assigneeId, Guid actorId, DateTimeOffset now)
     {
-        if (StatusTransitions.IsTerminal(Status))
+        if (!CanBeAssigned)
         {
             throw new RequestClosedException(Status);
         }
