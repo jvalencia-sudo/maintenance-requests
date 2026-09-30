@@ -25,6 +25,15 @@ export const categoryLabels: Record<RequestCategory, string> = {
   Other: "Otro",
 };
 
+/** Button text for moving a request to each status. Which buttons appear is decided by the API. */
+export const transitionLabels: Record<RequestStatus, string> = {
+  Pending: "Volver a pendiente",
+  InProgress: "Marcar en progreso",
+  OnHold: "Poner en espera",
+  Resolved: "Marcar como resuelta",
+  Cancelled: "Cancelar solicitud",
+};
+
 export const sortDirectionLabels: Record<SortDirection, string> = {
   desc: "Más recientes primero",
   asc: "Más antiguas primero",
