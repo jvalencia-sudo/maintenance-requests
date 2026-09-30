@@ -1,4 +1,10 @@
+using MaintenanceRequests.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
+builder.Services.AddInfrastructure(connectionString);
 
 // Add services to the container.
 
