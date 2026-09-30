@@ -14,7 +14,9 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # -h 127.0.0.1 forces TCP: on first start the image runs a temporary init server that only
+      # listens on the Unix socket, and a socket check would report healthy too early.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -34,6 +36,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Safety net for transient startup failures (for example, the database restarting).
+    restart: on-failure
     ports:
       - "${API_PORT:-8080}:8080"
 
