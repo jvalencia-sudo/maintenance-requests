@@ -21,7 +21,7 @@ export function UserSelector() {
           type="button"
           onClick={() => void refetch()}
           disabled={isFetching}
-          className="font-medium underline disabled:opacity-60"
+          className="py-2 font-medium underline disabled:opacity-60"
         >
           {isFetching ? "Cargando…" : "Reintentar usuarios"}
         </button>
@@ -33,7 +33,7 @@ export function UserSelector() {
     <label className="flex min-w-0 items-center gap-2 text-sm">
       <span className="hidden text-slate-600 sm:inline">Actuando como</span>
       <select
-        className="min-w-0 max-w-44 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm"
+        className="min-w-0 max-w-44 rounded-md border border-slate-300 bg-white px-2 py-2 text-base sm:text-sm"
         value={userId ?? ""}
         disabled={isPending}
         onChange={(event) => setUserId(Number(event.target.value))}

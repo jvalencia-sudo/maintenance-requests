@@ -36,11 +36,11 @@ export function SummaryPanel() {
           </button>
         </p>
       ) : (
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <dl className="grid grid-cols-3 gap-2 sm:gap-3 lg:grid-cols-6">
           {figures.map(({ key, label, accent }) => (
-            <div key={key} className={`rounded-lg border-l-4 bg-white px-4 py-3 shadow-sm ${accent}`}>
+            <div key={key} className={`rounded-lg border-l-4 bg-white px-2.5 py-2 shadow-sm sm:px-4 sm:py-3 ${accent}`}>
               <dt className="truncate text-xs text-slate-600">{label}</dt>
-              <dd className="mt-1 text-2xl font-semibold text-slate-900">
+              <dd className="mt-1 text-xl font-semibold sm:text-2xl text-slate-900">
                 {isPending ? <span className="inline-block h-7 w-8 animate-pulse rounded bg-slate-200" /> : data[key]}
               </dd>
             </div>

@@ -42,7 +42,8 @@ export function FilterBar({ filters, hasActiveFilters, onChange, onClear }: Read
     onClear();
   };
 
-  const selectClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm";
+  // 16px on phones: iOS Safari zooms into any form control with a smaller font.
+  const selectClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm";
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
@@ -53,7 +54,7 @@ export function FilterBar({ filters, hasActiveFilters, onChange, onClear }: Read
           onChange={(event) => setSearchText(event.target.value)}
           placeholder="Buscar por título…"
           aria-label="Buscar por título"
-          className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-base sm:text-sm"
         />
         <button
           type="button"
@@ -66,7 +67,7 @@ export function FilterBar({ filters, hasActiveFilters, onChange, onClear }: Read
         </button>
       </div>
 
-      <div id={panelId} className={`${isOpen ? "grid" : "hidden"} mt-3 gap-3 sm:grid-cols-2 md:grid md:grid-cols-4`}>
+      <div id={panelId} className={`${isOpen ? "grid" : "hidden"} mt-3 gap-3 sm:grid-cols-2 md:grid lg:grid-cols-4`}>
         <FilterSelect
           label="Estado"
           value={filters.status}
@@ -110,7 +111,7 @@ export function FilterBar({ filters, hasActiveFilters, onChange, onClear }: Read
       </div>
 
       {hasActiveFilters && (
-        <button type="button" onClick={clear} className="mt-3 text-sm font-medium text-blue-700 hover:underline">
+        <button type="button" onClick={clear} className="mt-1 inline-block py-2 text-sm font-medium text-blue-700 hover:underline">
           Limpiar filtros
         </button>
       )}

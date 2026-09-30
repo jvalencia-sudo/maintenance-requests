@@ -85,8 +85,9 @@ export function CreateRequestForm() {
     });
   };
 
+  // 16px on phones: iOS Safari zooms into any form control with a smaller font.
   const inputClass = (hasError: boolean) =>
-    `w-full rounded-md border bg-white px-3 py-2 text-sm ${hasError ? "border-red-500" : "border-slate-300"}`;
+    `w-full rounded-md border bg-white px-3 py-2 text-base sm:text-sm ${hasError ? "border-red-500" : "border-slate-300"}`;
 
   return (
     <form onSubmit={submit} noValidate className="space-y-5 rounded-lg border border-slate-200 bg-white p-4 sm:p-6">

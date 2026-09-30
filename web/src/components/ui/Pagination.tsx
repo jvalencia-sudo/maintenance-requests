@@ -8,7 +8,7 @@ interface PaginationProps {
 
 export function Pagination({ page, totalPages, totalCount, onPageChange, disabled = false }: Readonly<PaginationProps>) {
   const buttonClass =
-    "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+    "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <nav aria-label="Paginación" className="flex flex-wrap items-center justify-between gap-3">
