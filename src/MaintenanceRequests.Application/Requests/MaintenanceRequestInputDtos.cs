@@ -43,9 +43,3 @@ public sealed record AssignDto
     [Required(ErrorMessage = ValidationMessages.Required)]
     public uint? Version { get; init; }
 }
-
-public static class ValidationMessages
-{
-    public const string Required = "El campo es obligatorio.";
-    public const string InvalidValue = "El valor no es válido.";
-}
