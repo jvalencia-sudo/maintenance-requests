@@ -37,6 +37,12 @@ public sealed class MaintenanceRequest
 
     public DateTimeOffset CreatedAt { get; private set; }
 
+    /// <summary>
+    /// Optimistic concurrency token. Populated by the persistence layer
+    /// from PostgreSQL's xmin; the domain never writes it.
+    /// </summary>
+    public uint Version { get; private set; }
+
     public IReadOnlyCollection<RequestHistoryEntry> History => _history.AsReadOnly();
 
     public IReadOnlyList<RequestStatus> AllowedTransitions => StatusTransitions.From(Status);
