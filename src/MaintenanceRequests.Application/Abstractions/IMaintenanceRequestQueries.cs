@@ -8,9 +8,10 @@ namespace MaintenanceRequests.Application.Abstractions;
 /// </summary>
 public interface IMaintenanceRequestQueries
 {
-    Task<PagedResult<RequestListItemDto>> ListAsync(RequestListQuery query, CancellationToken cancellationToken);
+    Task<PagedResult<MaintenanceRequestListItemDto>> ListAsync(
+        MaintenanceRequestListQuery query, CancellationToken cancellationToken);
 
-    Task<RequestDetailDto?> GetDetailAsync(int id, CancellationToken cancellationToken);
+    Task<MaintenanceRequestDetailDto?> GetDetailAsync(int id, CancellationToken cancellationToken);
 
-    Task<RequestSummaryDto> GetSummaryAsync(CancellationToken cancellationToken);
+    Task<SummaryDto> GetSummaryAsync(CancellationToken cancellationToken);
 }

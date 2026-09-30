@@ -10,13 +10,13 @@ public enum SortDirection
 
 /// <summary>
 /// Filters for the request list. Each filter takes a single value and they combine with AND.
-/// Shape (page ranges, enum parsing) is validated at the API boundary.
+/// The shape (ranges, enum values) is validated at the API boundary before reaching this type.
 /// </summary>
-public sealed record RequestListQuery(
+public sealed record MaintenanceRequestListQuery(
     RequestStatus? Status = null,
     RequestPriority? Priority = null,
     RequestCategory? Category = null,
     string? Search = null,
-    SortDirection Sort = SortDirection.Desc,
+    SortDirection SortDirection = SortDirection.Desc,
     int Page = 1,
     int PageSize = 10);

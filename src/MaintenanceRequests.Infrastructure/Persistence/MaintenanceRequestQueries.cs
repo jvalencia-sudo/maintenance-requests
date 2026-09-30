@@ -1,5 +1,6 @@
 using MaintenanceRequests.Application.Abstractions;
 using MaintenanceRequests.Application.Requests;
+using MaintenanceRequests.Application.Users;
 using MaintenanceRequests.Domain.Requests;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,8 +10,8 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
 {
     private const string LikeEscapeCharacter = @"\";
 
-    public async Task<PagedResult<RequestListItemDto>> ListAsync(
-        RequestListQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<MaintenanceRequestListItemDto>> ListAsync(
+        MaintenanceRequestListQuery query, CancellationToken cancellationToken)
     {
         var requests = dbContext.MaintenanceRequests.AsNoTracking();
 
@@ -36,31 +37,44 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
             requests = requests.Where(r => EF.Functions.ILike(r.Title, pattern, LikeEscapeCharacter));
         }
 
-        var totalItems = await requests.CountAsync(cancellationToken);
+        var totalCount = await requests.CountAsync(cancellationToken);
 
         // Id breaks ties between equal timestamps so pagination is deterministic.
-        var ordered = query.Sort == SortDirection.Asc
+        var ordered = query.SortDirection == SortDirection.Asc
             ? requests.OrderBy(r => r.CreatedAt).ThenBy(r => r.Id)
             : requests.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
 
-        var items = await ordered
+        var rows = await ordered
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(r => new RequestListItemDto(
+            .Select(r => new
+            {
                 r.Id,
                 r.Title,
                 r.Category,
                 r.Priority,
                 r.Status,
-                dbContext.Users.Where(u => u.Id == r.RequesterId).Select(u => u.Name).FirstOrDefault()!,
-                dbContext.Users.Where(u => u.Id == r.AssigneeId).Select(u => u.Name).FirstOrDefault(),
-                r.CreatedAt))
+                r.AssigneeId,
+                AssigneeName = dbContext.Users.Where(u => u.Id == r.AssigneeId).Select(u => u.Name).FirstOrDefault(),
+                r.CreatedAt
+            })
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<RequestListItemDto>(items, query.Page, query.PageSize, totalItems);
+        var items = rows
+            .Select(r => new MaintenanceRequestListItemDto(
+                r.Id,
+                r.Title,
+                r.Category,
+                r.Priority,
+                r.Status,
+                ToUser(r.AssigneeId, r.AssigneeName),
+                r.CreatedAt))
+            .ToList();
+
+        return new PagedResult<MaintenanceRequestListItemDto>(items, query.Page, query.PageSize, totalCount);
     }
 
-    public async Task<RequestDetailDto?> GetDetailAsync(int id, CancellationToken cancellationToken)
+    public async Task<MaintenanceRequestDetailDto?> GetDetailAsync(int id, CancellationToken cancellationToken)
     {
         var row = await dbContext.MaintenanceRequests
             .AsNoTracking()
@@ -74,7 +88,7 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
                 r.Priority,
                 r.Status,
                 r.RequesterId,
-                RequesterName = dbContext.Users.Where(u => u.Id == r.RequesterId).Select(u => u.Name).FirstOrDefault()!,
+                RequesterName = dbContext.Users.Where(u => u.Id == r.RequesterId).Select(u => u.Name).FirstOrDefault(),
                 r.AssigneeId,
                 AssigneeName = dbContext.Users.Where(u => u.Id == r.AssigneeId).Select(u => u.Name).FirstOrDefault(),
                 r.CreatedAt,
@@ -82,18 +96,20 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
                 History = r.History
                     .OrderBy(h => h.OccurredAt)
                     .ThenBy(h => h.Id)
-                    .Select(h => new RequestHistoryItemDto(
+                    .Select(h => new
+                    {
                         h.Id,
                         h.EventType,
                         h.FromStatus,
                         h.ToStatus,
                         h.PreviousAssigneeId,
-                        dbContext.Users.Where(u => u.Id == h.PreviousAssigneeId).Select(u => u.Name).FirstOrDefault(),
+                        PreviousAssigneeName = dbContext.Users.Where(u => u.Id == h.PreviousAssigneeId).Select(u => u.Name).FirstOrDefault(),
                         h.NewAssigneeId,
-                        dbContext.Users.Where(u => u.Id == h.NewAssigneeId).Select(u => u.Name).FirstOrDefault(),
+                        NewAssigneeName = dbContext.Users.Where(u => u.Id == h.NewAssigneeId).Select(u => u.Name).FirstOrDefault(),
                         h.ActorId,
-                        dbContext.Users.Where(u => u.Id == h.ActorId).Select(u => u.Name).FirstOrDefault()!,
-                        h.OccurredAt))
+                        ActorName = dbContext.Users.Where(u => u.Id == h.ActorId).Select(u => u.Name).FirstOrDefault(),
+                        h.OccurredAt
+                    })
                     .ToList()
             })
             .SingleOrDefaultAsync(cancellationToken);
@@ -103,26 +119,36 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
             return null;
         }
 
+        var history = row.History
+            .Select(h => new HistoryEntryDto(
+                h.Id,
+                h.EventType,
+                h.FromStatus,
+                h.ToStatus,
+                ToUser(h.PreviousAssigneeId, h.PreviousAssigneeName),
+                ToUser(h.NewAssigneeId, h.NewAssigneeName),
+                new UserDto(h.ActorId, h.ActorName!),
+                h.OccurredAt))
+            .ToList();
+
         // Derived from the transition map in memory: the database knows nothing about the lifecycle.
-        return new RequestDetailDto(
+        return new MaintenanceRequestDetailDto(
             row.Id,
             row.Title,
             row.Description,
             row.Category,
             row.Priority,
             row.Status,
-            row.RequesterId,
-            row.RequesterName,
-            row.AssigneeId,
-            row.AssigneeName,
+            new UserDto(row.RequesterId, row.RequesterName!),
+            ToUser(row.AssigneeId, row.AssigneeName),
             row.CreatedAt,
             row.Version,
             StatusTransitions.From(row.Status),
             !StatusTransitions.IsTerminal(row.Status),
-            row.History);
+            history);
     }
 
-    public async Task<RequestSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
+    public async Task<SummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
         var counts = await dbContext.MaintenanceRequests
             .AsNoTracking()
@@ -130,12 +156,17 @@ internal sealed class MaintenanceRequestQueries(AppDbContext dbContext) : IMaint
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Status, x => x.Count, cancellationToken);
 
-        // Every status is present, with 0 when there are no requests in it.
-        var byStatus = Enum.GetValues<RequestStatus>()
-            .ToDictionary(status => status, status => counts.GetValueOrDefault(status));
-
-        return new RequestSummaryDto(byStatus.Values.Sum(), byStatus);
+        return new SummaryDto(
+            counts.Values.Sum(),
+            counts.GetValueOrDefault(RequestStatus.Pending),
+            counts.GetValueOrDefault(RequestStatus.InProgress),
+            counts.GetValueOrDefault(RequestStatus.OnHold),
+            counts.GetValueOrDefault(RequestStatus.Resolved),
+            counts.GetValueOrDefault(RequestStatus.Cancelled));
     }
+
+    // Foreign keys guarantee the user exists whenever the id does, so the name is never null here.
+    private static UserDto? ToUser(int? id, string? name) => id is { } userId ? new UserDto(userId, name!) : null;
 
     /// <summary>Makes user input literal inside a LIKE pattern by escaping \, % and _.</summary>
     private static string EscapeLikePattern(string value) => value

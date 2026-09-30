@@ -1,46 +1,41 @@
+using MaintenanceRequests.Application.Users;
 using MaintenanceRequests.Domain.Requests;
 
 namespace MaintenanceRequests.Application.Requests;
 
-public sealed record RequestListItemDto(
+public sealed record MaintenanceRequestListItemDto(
     int Id,
     string Title,
     RequestCategory Category,
     RequestPriority Priority,
     RequestStatus Status,
-    string RequesterName,
-    string? AssigneeName,
+    UserDto? Assignee,
     DateTimeOffset CreatedAt);
 
-public sealed record RequestDetailDto(
+public sealed record MaintenanceRequestDetailDto(
     int Id,
     string Title,
     string Description,
     RequestCategory Category,
     RequestPriority Priority,
     RequestStatus Status,
-    int RequesterId,
-    string RequesterName,
-    int? AssigneeId,
-    string? AssigneeName,
+    UserDto Requester,
+    UserDto? Assignee,
     DateTimeOffset CreatedAt,
     uint Version,
     IReadOnlyList<RequestStatus> AllowedTransitions,
     bool CanAssign,
-    IReadOnlyList<RequestHistoryItemDto> History);
+    IReadOnlyList<HistoryEntryDto> History);
 
-public sealed record RequestHistoryItemDto(
+public sealed record HistoryEntryDto(
     long Id,
     HistoryEventType Type,
     RequestStatus? FromStatus,
     RequestStatus? ToStatus,
-    int? PreviousAssigneeId,
-    string? PreviousAssigneeName,
-    int? NewAssigneeId,
-    string? NewAssigneeName,
-    int ActorId,
-    string ActorName,
+    UserDto? PreviousAssignee,
+    UserDto? NewAssignee,
+    UserDto Actor,
     DateTimeOffset OccurredAt);
 
 /// <summary>Global totals, independent of any list filter.</summary>
-public sealed record RequestSummaryDto(int Total, IReadOnlyDictionary<RequestStatus, int> ByStatus);
+public sealed record SummaryDto(int Total, int Pending, int InProgress, int OnHold, int Resolved, int Cancelled);
