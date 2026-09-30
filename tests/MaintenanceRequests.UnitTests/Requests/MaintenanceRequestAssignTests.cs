@@ -6,9 +6,9 @@ namespace MaintenanceRequests.UnitTests.Requests;
 
 public class MaintenanceRequestAssignTests
 {
-    private static readonly Guid ActorId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly Guid FirstAssigneeId = Guid.Parse("33333333-3333-3333-3333-333333333333");
-    private static readonly Guid SecondAssigneeId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+    private const int ActorId = 2;
+    private const int FirstAssigneeId = 3;
+    private const int SecondAssigneeId = 4;
     private static readonly DateTimeOffset AssignedAt = Now.AddHours(1);
     private static readonly DateTimeOffset ReassignedAt = Now.AddHours(3);
 

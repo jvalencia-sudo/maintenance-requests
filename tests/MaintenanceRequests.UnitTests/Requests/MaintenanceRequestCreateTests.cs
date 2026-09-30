@@ -11,7 +11,6 @@ public class MaintenanceRequestCreateTests
     {
         var request = CreateValid();
 
-        Assert.NotEqual(Guid.Empty, request.Id);
         Assert.Equal(ValidTitle, request.Title);
         Assert.Equal(ValidDescription, request.Description);
         Assert.Equal(RequestCategory.Equipment, request.Category);

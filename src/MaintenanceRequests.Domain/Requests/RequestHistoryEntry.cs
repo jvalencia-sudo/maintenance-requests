@@ -10,7 +10,7 @@ public sealed class RequestHistoryEntry
     {
     }
 
-    public Guid Id { get; private set; }
+    public long Id { get; private set; }
 
     public HistoryEventType EventType { get; private set; }
 
@@ -18,17 +18,16 @@ public sealed class RequestHistoryEntry
 
     public RequestStatus? ToStatus { get; private set; }
 
-    public Guid? PreviousAssigneeId { get; private set; }
+    public int? PreviousAssigneeId { get; private set; }
 
-    public Guid? NewAssigneeId { get; private set; }
+    public int? NewAssigneeId { get; private set; }
 
-    public Guid ActorId { get; private set; }
+    public int ActorId { get; private set; }
 
     public DateTimeOffset OccurredAt { get; private set; }
 
-    internal static RequestHistoryEntry Created(Guid actorId, DateTimeOffset now) => new()
+    internal static RequestHistoryEntry Created(int actorId, DateTimeOffset now) => new()
     {
-        Id = Guid.NewGuid(),
         EventType = HistoryEventType.Created,
         ToStatus = RequestStatus.Pending,
         ActorId = actorId,
@@ -36,9 +35,8 @@ public sealed class RequestHistoryEntry
     };
 
     internal static RequestHistoryEntry StatusChanged(
-        RequestStatus from, RequestStatus to, Guid actorId, DateTimeOffset now) => new()
+        RequestStatus from, RequestStatus to, int actorId, DateTimeOffset now) => new()
     {
-        Id = Guid.NewGuid(),
         EventType = HistoryEventType.StatusChanged,
         FromStatus = from,
         ToStatus = to,
@@ -47,9 +45,8 @@ public sealed class RequestHistoryEntry
     };
 
     internal static RequestHistoryEntry AssigneeChanged(
-        Guid? previousAssigneeId, Guid newAssigneeId, Guid actorId, DateTimeOffset now) => new()
+        int? previousAssigneeId, int newAssigneeId, int actorId, DateTimeOffset now) => new()
     {
-        Id = Guid.NewGuid(),
         EventType = HistoryEventType.AssigneeChanged,
         PreviousAssigneeId = previousAssigneeId,
         NewAssigneeId = newAssigneeId,

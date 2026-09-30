@@ -6,7 +6,7 @@ namespace MaintenanceRequests.UnitTests.Requests;
 
 public class MaintenanceRequestStatusTests
 {
-    private static readonly Guid ActorId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    private const int ActorId = 2;
 
     private static readonly DateTimeOffset ChangedAt = Now.AddHours(2);
 

@@ -6,13 +6,13 @@ public sealed class User
     {
     }
 
-    public User(Guid id, string name)
+    public User(int id, string name)
     {
         Id = id;
         Name = name;
     }
 
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
 
     public string Name { get; private set; } = null!;
 }

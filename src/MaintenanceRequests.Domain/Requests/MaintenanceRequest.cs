@@ -19,7 +19,8 @@ public sealed class MaintenanceRequest
     {
     }
 
-    public Guid Id { get; private set; }
+    /// <summary>Identity assigned by the database on insert; 0 until the request is saved.</summary>
+    public int Id { get; private set; }
 
     public string Title { get; private set; } = null!;
 
@@ -31,9 +32,9 @@ public sealed class MaintenanceRequest
 
     public RequestStatus Status { get; private set; }
 
-    public Guid RequesterId { get; private set; }
+    public int RequesterId { get; private set; }
 
-    public Guid? AssigneeId { get; private set; }
+    public int? AssigneeId { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -54,7 +55,7 @@ public sealed class MaintenanceRequest
         string description,
         RequestCategory category,
         RequestPriority priority,
-        Guid requesterId,
+        int requesterId,
         DateTimeOffset now)
     {
         var normalizedTitle = NormalizeText(title, "title", "El título", TitleMinLength, TitleMaxLength);
@@ -73,7 +74,6 @@ public sealed class MaintenanceRequest
 
         var request = new MaintenanceRequest
         {
-            Id = Guid.NewGuid(),
             Title = normalizedTitle,
             Description = normalizedDescription,
             Category = category,
@@ -88,7 +88,7 @@ public sealed class MaintenanceRequest
         return request;
     }
 
-    public void ChangeStatus(RequestStatus target, Guid actorId, DateTimeOffset now)
+    public void ChangeStatus(RequestStatus target, int actorId, DateTimeOffset now)
     {
         if (!StatusTransitions.IsAllowed(Status, target))
         {
@@ -100,7 +100,7 @@ public sealed class MaintenanceRequest
         _history.Add(RequestHistoryEntry.StatusChanged(previous, target, actorId, now));
     }
 
-    public void Assign(Guid assigneeId, Guid actorId, DateTimeOffset now)
+    public void Assign(int assigneeId, int actorId, DateTimeOffset now)
     {
         if (!CanBeAssigned)
         {
