@@ -58,6 +58,59 @@ public class MaintenanceRequestsApiTests(PostgresFixture fixture) : IClassFixtur
     }
 
     [Fact]
+    public async Task Create_IgnoresOverPostedFields()
+    {
+        // Fields the client must not control: the server assigns id, status and dates.
+        var body = new Dictionary<string, object>(ValidCreateBody)
+        {
+            ["id"] = 999,
+            ["status"] = "Resolved",
+            ["createdAt"] = "2000-01-01T00:00:00Z"
+        };
+
+        var before = DateTimeOffset.UtcNow;
+        var response = await PostAsync(_client, body);
+        var after = DateTimeOffset.UtcNow;
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = await ReadAsync<MaintenanceRequestDetailDto>(response);
+        Assert.NotEqual(999, created.Id);
+        Assert.Equal(RequestStatus.Pending, created.Status);
+        Assert.InRange(created.CreatedAt, before.AddSeconds(-1), after.AddSeconds(1));
+        Assert.Equal(RequesterId, created.Requester.Id);
+    }
+
+    [Fact]
+    public async Task Mutation_WithoutUserHeader_ReturnsUnauthorized()
+    {
+        var created = await ReadAsync<MaintenanceRequestDetailDto>(await CreateAsync(_client));
+
+        var createResponse = await PostAsync(_client, ValidCreateBody, userId: null);
+        var changeResponse = await ChangeStatusAsync(
+            _client, created.Id, RequestStatus.InProgress, created.Version, userId: null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, createResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, changeResponse.StatusCode);
+        var detail = await GetDetailAsync(_client, created.Id);
+        Assert.Equal(RequestStatus.Pending, detail.Status);
+    }
+
+    [Fact]
+    public async Task Create_WithFourCharacterTitle_ReturnsFieldErrorInCamelCase()
+    {
+        var body = new Dictionary<string, object>(ValidCreateBody) { ["title"] = "abcd" };
+
+        var response = await PostAsync(_client, body);
+
+        // The domain's DomainValidationException.Field reaches the JSON as errors.title.
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await ReadAsync<JsonElement>(response);
+        var titleErrors = problem.GetProperty("errors").GetProperty("title");
+        Assert.Equal(JsonValueKind.Array, titleErrors.ValueKind);
+        Assert.NotEqual(0, titleErrors.GetArrayLength());
+    }
+
+    [Fact]
     public async Task ChangeStatus_WithStaleVersion_ReturnsConcurrencyConflict()
     {
         var created = await ReadAsync<MaintenanceRequestDetailDto>(await CreateAsync(_client));
