@@ -41,6 +41,10 @@ internal static class ApiClient
         HttpClient client, int id, RequestStatus targetStatus, uint version, int? userId = RequesterId) =>
         SendAsync(client, HttpMethod.Patch, $"{BasePath}/{id}/status", userId, new { targetStatus, version });
 
+    public static Task<HttpResponseMessage> AssignAsync(
+        HttpClient client, int id, int assigneeId, uint version, int? userId = RequesterId) =>
+        SendAsync(client, HttpMethod.Patch, $"{BasePath}/{id}/assignee", userId, new { assigneeId, version });
+
     public static async Task<MaintenanceRequestDetailDto> GetDetailAsync(HttpClient client, int id)
     {
         var detail = await client.GetFromJsonAsync<MaintenanceRequestDetailDto>($"{BasePath}/{id}", JsonOptions);
