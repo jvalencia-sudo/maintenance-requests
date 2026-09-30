@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+import { UserSelector } from "@/components/layout/UserSelector";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
@@ -15,9 +16,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <header className="border-b border-slate-200 bg-white">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-              <Link href="/requests" className="font-semibold text-slate-900">
+              <Link href="/requests" className="shrink-0 font-semibold text-slate-900">
                 Mantenimiento
               </Link>
+              <UserSelector />
             </div>
           </header>
           <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
