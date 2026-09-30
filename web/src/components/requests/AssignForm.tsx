@@ -38,12 +38,13 @@ export function AssignForm({ request, onFeedback }: Readonly<AssignFormProps>) {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* Stacked in the narrow side column on lg; side by side where there is room. */}
+      <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
         <select
           value={assigneeId ?? ""}
           onChange={(event) => setAssigneeId(event.target.value ? Number(event.target.value) : null)}
           aria-label="Nuevo responsable"
-          className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm"
         >
           <option value="">Selecciona un responsable</option>
           {users?.map((user) => (

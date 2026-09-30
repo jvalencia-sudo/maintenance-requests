@@ -27,7 +27,7 @@ export function RequestDetailView({ id }: Readonly<{ id: number }>) {
   });
 
   const backLink = (
-    <Link href="/requests" className="text-sm font-medium text-blue-700 hover:underline">
+    <Link href="/requests" className="inline-block py-2 text-sm font-medium text-blue-700 hover:underline">
       ← Volver al listado
     </Link>
   );
@@ -50,7 +50,7 @@ export function RequestDetailView({ id }: Readonly<{ id: number }>) {
 
       <header className="space-y-2">
         <p className="text-sm text-slate-500">Solicitud #{request.id}</p>
-        <h1 className="break-words text-2xl font-semibold text-slate-900">{request.title}</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 wrap-anywhere">{request.title}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={request.status} />
           <PriorityBadge priority={request.priority} />
@@ -66,10 +66,12 @@ export function RequestDetailView({ id }: Readonly<{ id: number }>) {
         </div>
       )}
 
+      {/* Grid items default to min-width: auto, so a long unbroken word (a URL) would widen the
+          column past the screen; min-w-0 lets it shrink and wrap-anywhere breaks the word. */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <Card title="Descripción">
-            <p className="whitespace-pre-wrap break-words text-sm text-slate-800">{request.description}</p>
+            <p className="whitespace-pre-wrap text-sm text-slate-800 wrap-anywhere">{request.description}</p>
           </Card>
 
           <Card title="Historial">
@@ -77,15 +79,16 @@ export function RequestDetailView({ id }: Readonly<{ id: number }>) {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        {/* On mobile the data and actions come first, so changing the status needs no scrolling. */}
+        <div className="order-first min-w-0 space-y-6 lg:order-none">
           <Card title="Datos">
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
               <dt className="text-slate-500">Categoría</dt>
               <dd>{categoryLabels[request.category]}</dd>
               <dt className="text-slate-500">Solicitante</dt>
-              <dd className="break-words">{request.requester.name}</dd>
+              <dd className="wrap-anywhere">{request.requester.name}</dd>
               <dt className="text-slate-500">Responsable</dt>
-              <dd className="break-words">{request.assignee?.name ?? "Sin asignar"}</dd>
+              <dd className="wrap-anywhere">{request.assignee?.name ?? "Sin asignar"}</dd>
               <dt className="text-slate-500">Creada</dt>
               <dd>{formatDateTime(request.createdAt)}</dd>
             </dl>
