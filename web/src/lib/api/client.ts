@@ -52,8 +52,8 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
   } catch {
     throw new ApiError(
       NETWORK_ERROR_STATUS,
-      "No se pudo conectar con el servidor.",
-      "Revisa tu conexión o intenta de nuevo en unos segundos.",
+      "Sin conexión con el servidor.",
+      "No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.",
       "network_error",
       {},
     );

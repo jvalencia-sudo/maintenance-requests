@@ -1,3 +1,15 @@
+import { Suspense } from "react";
+import { RequestListView } from "@/components/requests/RequestListView";
+import { LoadingState } from "@/components/ui/LoadingState";
+
 export default function RequestsPage() {
-  return <h1 className="text-xl font-semibold">Solicitudes</h1>;
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-semibold">Solicitudes</h1>
+      {/* useSearchParams needs a Suspense boundary, or the static build fails. */}
+      <Suspense fallback={<LoadingState />}>
+        <RequestListView />
+      </Suspense>
+    </div>
+  );
 }

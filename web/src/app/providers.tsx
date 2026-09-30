@@ -11,7 +11,8 @@ export function Providers({ children }: Readonly<{ children: ReactNode }>) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000,
+            // staleTime 0 (the default): cached data shows instantly, but every visit to a
+            // list, detail or summary is revalidated against the server.
             retry: 1,
             refetchOnWindowFocus: false,
           },

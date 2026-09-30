@@ -6,7 +6,12 @@ import { useCurrentUser } from "@/lib/current-user";
 
 export function UserSelector() {
   const { userId, setUserId } = useCurrentUser();
-  const { data: users, isPending, isError } = useQuery({ queryKey: userKeys.all, queryFn: listUsers });
+  const { data: users, isPending, isError } = useQuery({
+    queryKey: userKeys.all,
+    queryFn: listUsers,
+    // Fixed catalog: loaded once per session.
+    staleTime: Infinity,
+  });
 
   if (isError) {
     return <span className="text-sm text-red-700">No se pudieron cargar los usuarios</span>;
