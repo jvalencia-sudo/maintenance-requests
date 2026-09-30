@@ -15,6 +15,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+await app.Services.ApplyMigrationsAsync();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -28,4 +30,4 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();

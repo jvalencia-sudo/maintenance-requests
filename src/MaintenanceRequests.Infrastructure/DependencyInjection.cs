@@ -14,4 +14,12 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>Applies pending migrations so a fresh database is ready without manual steps.</summary>
+    public static async Task ApplyMigrationsAsync(this IServiceProvider services)
+    {
+        await using var scope = services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await dbContext.Database.MigrateAsync();
+    }
 }
