@@ -50,10 +50,10 @@ export function RequestListView() {
             />
           ) : (
             <div className={`space-y-4 transition-opacity ${isPlaceholderData ? "opacity-60" : ""}`}>
-              <div className="hidden md:block">
+              <div className="hidden lg:block">
                 <RequestTable requests={data.items} />
               </div>
-              <ul className="space-y-3 md:hidden">
+              <ul className="grid gap-3 md:grid-cols-2 lg:hidden">
                 {data.items.map((request) => (
                   <li key={request.id}>
                     <RequestCard request={request} />
@@ -84,7 +84,7 @@ interface ListEmptyStateProps {
 
 /** Tells apart "nothing exists yet", "nothing matches" and "this page is past the end". */
 function ListEmptyState({ totalCount, hasActiveFilters, onClearFilters, onFirstPage }: Readonly<ListEmptyStateProps>) {
-  const linkButton = "text-sm font-medium text-blue-700 hover:underline";
+  const linkButton = "inline-block py-2 text-sm font-medium text-blue-700 hover:underline";
 
   if (totalCount === 0 && !hasActiveFilters) {
     return (
