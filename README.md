@@ -13,6 +13,7 @@ Aplicación para registrar solicitudes de mantenimiento y seguirlas hasta su cie
 5. [Contrato de la API](#contrato-de-la-api)
 6. [Autenticación simulada](#autenticación-simulada)
 7. [Supuestos de negocio](#supuestos-de-negocio)
+8. [Arquitectura](#arquitectura)
 
 ## Requisitos
 
@@ -235,3 +236,42 @@ La prueba no pide autenticación, así que el actor de cada operación viaja en 
 - **Fechas:** se guardan en UTC (`timestamptz`) y la web las muestra en la hora local del navegador.
 - **El resumen muestra totales globales**, no los del listado filtrado.
 - **Título** de 5 a 120 caracteres y **descripción** de 10 a 2000, contados después de quitar espacios al inicio y al final. Se cuentan caracteres Unicode (*code points*), no unidades UTF-16, así que la mayoría de los emojis cuentan como uno.
+
+## Arquitectura
+
+### Contenedores
+
+El navegador descarga la web desde `web` y llama directamente a la API; solo la API habla con la base de datos.
+
+```mermaid
+flowchart LR
+    browser(["Navegador"])
+
+    subgraph compose["Docker Compose"]
+        web["<b>web</b><br/>Next.js 16<br/>:3000"]
+        api["<b>api</b><br/>ASP.NET Core 8<br/>:8080"]
+        db[("<b>db</b><br/>PostgreSQL 16<br/>:5432")]
+    end
+
+    browser -- "páginas y JS" --> web
+    browser -- "JSON + X-User-Id" --> api
+    api -- "EF Core (Npgsql)" --> db
+```
+
+### Capas del backend
+
+Cada flecha significa "depende de". El dominio no depende de nada; Application define las interfaces que Infrastructure implementa.
+
+```mermaid
+flowchart TB
+    api["<b>Api</b><br/>Controladores<br/>Errores como ProblemDetails<br/>Usuario actual (X-User-Id)"]
+    app["<b>Application</b><br/>Casos de uso y DTOs<br/>Interfaces de repositorio<br/>y de consultas"]
+    domain["<b>Domain</b><br/>Agregado MaintenanceRequest<br/>Transiciones de estado<br/>Historial"]
+    infra["<b>Infrastructure</b><br/>EF Core y migraciones<br/>Repositorio y consultas<br/>Datos demo"]
+
+    api --> app
+    app --> domain
+    infra --> app
+    infra --> domain
+    api -. "solo composition root (registro de dependencias)" .-> infra
+```
