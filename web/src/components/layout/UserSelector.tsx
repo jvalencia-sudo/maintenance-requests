@@ -6,7 +6,7 @@ import { useCurrentUser } from "@/lib/current-user";
 
 export function UserSelector() {
   const { userId, setUserId } = useCurrentUser();
-  const { data: users, isPending, isError } = useQuery({
+  const { data: users, isPending, isError, refetch, isFetching } = useQuery({
     queryKey: userKeys.all,
     queryFn: listUsers,
     // Fixed catalog: loaded once per session.
@@ -14,7 +14,19 @@ export function UserSelector() {
   });
 
   if (isError) {
-    return <span className="text-sm text-red-700">No se pudieron cargar los usuarios</span>;
+    return (
+      <span className="flex items-center gap-2 text-sm text-red-700">
+        <span className="hidden sm:inline">No se pudieron cargar los usuarios.</span>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          className="font-medium underline disabled:opacity-60"
+        >
+          {isFetching ? "Cargando…" : "Reintentar usuarios"}
+        </button>
+      </span>
+    );
   }
 
   return (
