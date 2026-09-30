@@ -1,6 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -86,7 +87,17 @@ function ListEmptyState({ totalCount, hasActiveFilters, onClearFilters, onFirstP
   const linkButton = "text-sm font-medium text-blue-700 hover:underline";
 
   if (totalCount === 0 && !hasActiveFilters) {
-    return <EmptyState title="Aún no hay solicitudes" description="Cuando alguien registre una solicitud aparecerá aquí." />;
+    return (
+      <EmptyState
+        title="Aún no hay solicitudes"
+        description="Cuando alguien registre una solicitud aparecerá aquí."
+        action={
+          <Link href="/requests/new" className={linkButton}>
+            Crear la primera solicitud
+          </Link>
+        }
+      />
+    );
   }
 
   if (totalCount === 0) {
