@@ -78,6 +78,18 @@ public sealed class MaintenanceRequest
         return request;
     }
 
+    public void ChangeStatus(RequestStatus target, Guid actorId, DateTimeOffset now)
+    {
+        if (!StatusTransitions.IsAllowed(Status, target))
+        {
+            throw new InvalidStatusTransitionException(Status, target);
+        }
+
+        var previous = Status;
+        Status = target;
+        _history.Add(RequestHistoryEntry.StatusChanged(previous, target, actorId, now));
+    }
+
     /// <summary>
     /// Trims the value and checks its length in runes (Unicode scalar values),
     /// so an emoji counts as one character instead of two UTF-16 code units.

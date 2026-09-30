@@ -19,4 +19,29 @@ internal static class RequestFactory
         RequestPriority.High,
         RequesterId,
         Now);
+
+    /// <summary>
+    /// Reaches <paramref name="status"/> by walking a valid path through the public API,
+    /// so tests never need a public setter. Paths are written by hand, not read from StatusTransitions.
+    /// </summary>
+    public static MaintenanceRequest CreateIn(RequestStatus status)
+    {
+        RequestStatus[] path = status switch
+        {
+            RequestStatus.Pending => [],
+            RequestStatus.InProgress => [RequestStatus.InProgress],
+            RequestStatus.OnHold => [RequestStatus.InProgress, RequestStatus.OnHold],
+            RequestStatus.Resolved => [RequestStatus.InProgress, RequestStatus.Resolved],
+            RequestStatus.Cancelled => [RequestStatus.Cancelled],
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
+        };
+
+        var request = CreateValid();
+        foreach (var step in path)
+        {
+            request.ChangeStatus(step, RequesterId, Now);
+        }
+
+        return request;
+    }
 }
