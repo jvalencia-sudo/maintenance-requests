@@ -14,6 +14,8 @@ Aplicación para registrar solicitudes de mantenimiento y seguirlas hasta su cie
 6. [Autenticación simulada](#autenticación-simulada)
 7. [Supuestos de negocio](#supuestos-de-negocio)
 8. [Arquitectura](#arquitectura)
+9. [Decisiones técnicas](#decisiones-técnicas)
+10. [Uso de IA](#uso-de-ia)
 
 ## Requisitos
 
@@ -275,3 +277,115 @@ flowchart TB
     infra --> domain
     api -. "solo composition root (registro de dependencias)" .-> infra
 ```
+
+## Decisiones técnicas
+
+### Estructura
+
+Cuatro proyectos de código y dos de pruebas. Las dependencias apuntan hacia el dominio: Api → Application → Domain, e Infrastructure → Application y Domain. Api referencia Infrastructure solo para registrar dependencias en [Program.cs](src/MaintenanceRequests.Api/Program.cs), y ningún controlador usa el `DbContext`.
+
+| Proyecto | Contiene |
+|---|---|
+| `Domain` | El agregado `MaintenanceRequest`, su historial, el mapa de transiciones, los enums y las excepciones de negocio. No depende de ningún paquete. |
+| `Application` | El servicio con los casos de uso, los DTOs de entrada y salida, y las interfaces que necesita (`ICurrentUser`, repositorio, consultas). |
+| `Infrastructure` | EF Core con PostgreSQL: configuración del modelo, migraciones, repositorio, consultas de lectura y datos demo. |
+| `Api` | Controladores, manejo centralizado de errores, lectura de `X-User-Id` y configuración por variables de entorno. |
+
+- **Por qué:** el dominio no depende de EF ni de ASP.NET, así que sus reglas se prueban sin web ni base de datos. Además, el compilador impide meter infraestructura en él por accidente.
+- **Costo:** más proyectos y archivos que una API de un solo proyecto. Lo acepté porque el enunciado evalúa justamente esa separación.
+- **Lectura y escritura separadas, sin MediatR:**
+  - Las escrituras cargan el agregado con el repositorio y lo cambian solo mediante sus métodos.
+  - Las lecturas proyectan directo a DTO en [MaintenanceRequestQueries.cs](src/MaintenanceRequests.Infrastructure/Persistence/MaintenanceRequestQueries.cs), porque no tienen reglas que proteger.
+
+### SOLID y DDD
+
+| Principio | Dónde se ve |
+|---|---|
+| S | El controlador ([MaintenanceRequestsController.cs](src/MaintenanceRequests.Api/Controllers/MaintenanceRequestsController.cs)) traduce HTTP, el servicio ([MaintenanceRequestService.cs](src/MaintenanceRequests.Application/Requests/MaintenanceRequestService.cs)) orquesta el caso de uso, el agregado aplica las reglas y el repositorio persiste. |
+| O | Las transiciones viven en un solo mapa ([StatusTransitions.cs](src/MaintenanceRequests.Domain/Requests/StatusTransitions.cs)), no en condicionales dispersos. Un estado nuevo es un valor del enum más su línea en el mapa. El CHECK de la base se genera desde el enum ([CheckConstraintSql.cs](src/MaintenanceRequests.Infrastructure/Persistence/Configurations/CheckConstraintSql.cs)), así que solo hace falta una migración nueva. |
+| L | No hay jerarquías con comportamiento que sustituir. La única herencia es `DomainException`: sus subtipos solo agregan datos (`Code`, `Field`) y no redefinen nada. |
+| I | Interfaces pequeñas: `ICurrentUser` tiene una propiedad, y el repositorio del agregado tiene tres métodos (`GetByIdAsync`, `Add`, `SaveChangesAsync`), sin `Update` genérico. |
+| D | Application define las interfaces que implementan Api (`CurrentUser`) e Infrastructure (repositorio y consultas). El reloj llega como `TimeProvider`, y el dominio recibe la fecha como parámetro. |
+
+**DDD táctico, sin más:**
+- `MaintenanceRequest` es un agregado con setters privados. El estado y el responsable solo cambian con `ChangeStatus` y `Assign`, que validan y agregan la entrada del historial en la misma operación ([MaintenanceRequest.cs](src/MaintenanceRequests.Domain/Requests/MaintenanceRequest.cs)).
+- El historial es una entidad hija que solo el dominio puede crear: su constructor es privado y sus fábricas son `internal`.
+- `User` se referencia por id.
+- No usé bounded contexts, domain events ni value objects, porque el problema no los justifica.
+
+### Patrones y librerías
+
+| Elemento | Decisión | Motivo |
+|---|---|---|
+| Repositorio (solo del agregado) | Sí | Application no depende de EF, y toda escritura pasa por el agregado. |
+| Servicio de consultas | Sí | Proyección directa a DTO con filtros, orden y paginación en SQL. |
+| Excepciones + `IExceptionHandler` | Sí | Un solo lugar traduce los errores a ProblemDetails; los controladores no tienen `try/catch`. |
+| `TimeProvider` | Sí | La fecha se puede controlar en las pruebas sin inventar una interfaz propia. |
+| Swashbuckle | Sí | Viene en la plantilla de .NET 8 (MIT). |
+| EFCore.NamingConventions | Sí | Tablas y columnas en snake_case con una línea (Apache 2.0). |
+| Testcontainers | Sí | El proveedor InMemory no aplica transacciones, CHECKs, FKs ni `ILIKE` (MIT). |
+| TanStack Query | Sí | Carga, error, reintento e invalidación del listado y del resumen tras cada cambio. |
+| MediatR, AutoMapper | No | Indirección sin beneficio en una API de este tamaño; además tienen licencia comercial desde 2025. |
+| FluentValidation | No | Duplicaría reglas que ya protege el dominio. |
+| Repositorio genérico, Unit of Work propio | No | `DbContext` ya es la unidad de trabajo, y un `Update` genérico saltaría las reglas del agregado. |
+| Patrón State, domain events | No | Cinco estados sin comportamiento distinto: un mapa basta. Nadie consumiría los eventos. |
+| FluentAssertions 8 | No | Licencia comercial desde 2025; las pruebas usan los `Assert` de xUnit. |
+| react-hook-form, zod, Redux | No | Hay un solo formulario, y el estado de los filtros vive en la URL. |
+
+### Persistencia
+
+- **Esquema:** tres tablas, `users`, `maintenance_requests` y `request_history`, con nombres en snake_case. Las fechas son `timestamptz` y los usuarios se siembran en la migración.
+- **Enums como texto** con un CHECK generado desde el enum: se leen bien en la base y no se rompen si alguien reordena el enum en C#.
+- **CHECK de coherencia del historial:** cada tipo de evento exige los datos que lo describen. Por ejemplo, un `StatusChanged` sin `from_status` no entra.
+- **Índices, cada uno por una consulta:**
+  - `(created_at, id)`: el listado y su orden, con `id` como desempate estable para paginar.
+  - `(status, created_at, id)`: el listado filtrado por estado.
+  - GIN con `gin_trgm_ops` sobre `title` (extensión `pg_trgm`): la búsqueda con `ILIKE '%texto%'`, que un índice B-tree no puede usar.
+  - `(request_id, occurred_at, id)`: el historial del detalle, en orden.
+- **Índices que no creé:**
+  - Quité la convención de EF que indexa cada FK, porque ninguna consulta filtra por `requester_id` ni `assignee_id`.
+  - `priority` y `category` sí son filtros, pero tienen 4 valores cada uno. Un índice propio apenas descarta filas, y con este volumen el planificador prefiere recorrer la tabla. Con datos reales lo decidiría con `EXPLAIN ANALYZE`.
+- **Atomicidad:** el cambio y su entrada de historial se guardan en un solo `SaveChanges`, que EF ejecuta en una transacción. [HistoryAtomicityTests.cs](tests/MaintenanceRequests.IntegrationTests/HistoryAtomicityTests.cs) lo demuestra: un trigger hace fallar el INSERT del historial, y la prueba verifica que el cambio de estado o de responsable también se revirtió.
+- **Concurrencia optimista:** `Version` se mapea a la columna de sistema `xmin` de PostgreSQL, que cambia en cada UPDATE, así que no hace falta una columna propia. El cliente reenvía la versión que leyó. Si no coincide, o si otra escritura se adelantó entre la lectura y el guardado, la API responde 409 `concurrency_conflict`.
+- **Migraciones:** versionadas en el repositorio y aplicadas al arrancar si `APPLY_MIGRATIONS=true`. En producción irían en un paso del pipeline, antes del despliegue.
+- **Borrado:** todas las FKs son `RESTRICT`. No hay borrado; cancelar lo reemplaza y el historial se conserva completo.
+
+### Limitaciones y mejoras
+
+- **Autenticación real** (JWT/OIDC) con roles. Hoy cualquier cliente puede suplantar a otro usuario, y el 401 no incluye la cabecera `WWW-Authenticate`.
+- **Búsqueda sin tildes:** hoy la búsqueda distingue tildes. Se resolvería con la extensión `unaccent`.
+- **Paginación por cursor:** hoy es por offset; con volumen alto conviene el cursor.
+- **Desasignar, editar y comentar:** no se puede desasignar ni editar, y las transiciones no llevan comentario ni motivo.
+- **Responsable obligatorio para `InProgress`:** hoy no se exige.
+- **Carrera de `xmin`:** la protección ante dos escrituras simultáneas no tiene prueba automática. La comparación con la versión del cliente sí la tiene.
+- **Reintentos ante fallos transitorios:** no hay `EnableRetryOnFailure`. Si la base se reinicia, la primera petición puede responder 500.
+- **Detalles del contrato:**
+  - Los 400 que genera el propio framework (JSON mal formado, campo faltante) tienen el título en inglés.
+  - Los enums también aceptan su valor numérico.
+- **Cadena de conexión:** se arma concatenando variables, así que un `;` en `POSTGRES_PASSWORD` la rompería.
+- **URL de la API fija en el build:** `NEXT_PUBLIC_API_URL` queda fija al construir la imagen web.
+- **Validación duplicada:** los límites de título y descripción están duplicados en la web ([validation.ts](web/src/lib/validation.ts)) para dar respuesta inmediata. La API sigue siendo la que decide.
+- **Pruebas, CI y observabilidad:** el frontend no tiene pruebas automatizadas, y faltan CI con las pruebas y métricas y trazas.
+
+## Uso de IA
+
+Usé Claude (Anthropic) como apoyo durante toda la prueba, como lo permite el enunciado:
+
+- **Análisis y diseño:** el análisis de lo que había que hacer y el diseño principal
+  fueron míos. Ese diseño se fue ajustando con mejoras que propuso Claude.
+- **Generación de código:** buena parte del código se generó con Claude Code a partir
+  de ese diseño, bloque por bloque (dominio, persistencia, API, pruebas, frontend,
+  Docker). Por eso varios commits tienen pocos minutos de diferencia entre sí.
+- **Revisión:** después de cada bloque pedí una revisión con criterio de evaluador y
+  corregí lo que salió de ella. Por ejemplo: la connection string pasó a user secrets,
+  el healthcheck de PostgreSQL ahora espera por TCP, la tabla ya no se recorta en
+  tablet y la descripción ya no desborda en móvil.
+
+**Cómo verifiqué el resultado:** leí el código completo de cada capa hasta poder
+explicarlo, ejecuté las pruebas unitarias y de integración, probé la API desde Swagger
+(transiciones inválidas, versión vieja, datos inválidos, falta de X-User-Id), revisé la
+interfaz en varios anchos de pantalla y levanté la solución con Docker Compose desde un
+clon limpio.
+
+Las decisiones de diseño son mías y puedo justificarlas; la IA aceleró la escritura
+y la revisión, no reemplazó el criterio.
